@@ -1,0 +1,36 @@
+{
+    //////////////
+    // Markdown
+    //////////////
+    "[markdown]": {
+        // 右端でを折り返して表示
+        "editor.wordWrap": "off",
+    },
+    //// markdown-all-in-one ////
+    // ファイル保存時にhtmlを更新
+    "markdown.extension.print.onFileSave": true,
+    // 画像ファイルはbase64形式でhtmlへ埋め込む
+    "markdown.extension.print.imgToBase64": true,
+    // 目次の自動更新
+    "markdown.extension.toc.updateOnSave": false,
+    // 目次に表示する見出しLevelを指定
+    "markdown.extension.toc.levels": "2..4",
+    // 目次で番号付きリストを使用する
+    "markdown.extension.toc.orderedList": false,
+    // 式のレンダリング(KaTeX)を無効
+    "markdown.extension.math.enabled": false,
+    //// Markdown Preview Enhanced ////
+    // 改行はエディタと同様にする
+    "markdown-preview-enhanced.breakOnSingleNewLine": true,
+    // スクロール同期を無効
+    "markdown-preview-enhanced.scrollSync": false,
+    // 数式レンダリングを指定
+    "markdown-preview-enhanced.mathRenderingOption": "MathJax",
+
+    "cSpell.words": [
+        "numpy",
+        "pyenv",
+        "pyinstaller",
+        "zstandard"
+    ]
+}
