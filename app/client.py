@@ -1,35 +1,81 @@
+import asyncio
 import socket
-import time
+import sys
 
 
 class BaseClient:
     skt: socket.socket
     buffer_size: int
+    is_running: bool = True
+    is_sending: bool = True
 
     def __init__(self, family: int, typ: int, proto: int = 0, timeout: int = 10, buffer_size: int = 1024) -> None:
         self.skt = socket.socket(family, typ, proto)
         self.skt.settimeout(timeout)
+        self.skt.setblocking(False)  # none blocking
         self.buffer_size = buffer_size
 
-    def connect(self, host: str, port: int) -> bool:
+    async def connect_async(self, host: str, port: int) -> None:
+        loop = asyncio.get_event_loop()
+        asyncio.create_task(self.handle_control(loop))
         print(f"connecting to {(host, port)}")
-        try:
-            self.skt.connect((host, port))
-        except Exception as ex:
-            print(ex)
-            return False
-        return True
+        await loop.sock_connect(self.skt, (host, port))
+        # asyncio event loop
+        asyncio.create_task(self.handle_recv(self.skt, loop))
+        asyncio.create_task(self.handle_send(self.skt, loop))
+        while self.is_running:
+            await asyncio.sleep(5)
+        loop.close()
 
-    def send(self, message: str) -> None:
-        if not message:
-            print("exit for no message.")
-            return
-        self.skt.send(message.encode("utf-8"))
-        recv_bytes = self.skt.recv(self.buffer_size)
-        self.received(recv_bytes)
+    async def handle_control(self, loop: asyncio.AbstractEventLoop) -> None:
+        while True:
+            line = await input_async("")
+            if not line:
+                continue
+            elif line in ["q", "quit"]:
+                self.is_running = False
+                loop.stop()
+            elif line in ["s", "send"]:
+                self.is_sending ^= True
+                if self.is_sending:
+                    print("send flag On")
+                else:
+                    print("send flag off")
+            else:
+                print("unknown command!")
 
-    def received(self, recv_bytes: bytes) -> None:
-        print(f"received message: {recv_bytes.decode('utf-8')}")
+    async def handle_send(self, skt: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+        while True:
+            await asyncio.sleep(5)
+            if self.is_sending:
+                try:
+                    message = "send from client!"
+                    await loop.sock_sendall(skt, message.encode("utf-8"))
+                    print(f"TX: {message}")
+                except ConnectionResetError:
+                    # 接続が切れているので送信を終了する
+                    print("disconnected from server!")
+                    return
+                except Exception as ex:
+                    print(f"catch Exception: {ex}")
+                    break
+
+    async def handle_recv(self, skt: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+        while True:
+            try:
+                recv_bytes = await loop.sock_recv(skt, self.buffer_size)
+                self.respond(recv_bytes)
+            except ConnectionAbortedError:
+                print("disconnected from server!")
+                break
+            except Exception as ex:
+                print(f"catch Exception: {ex}")
+                break
+
+    def respond(self, recv_bytes: bytes) -> None:
+        """応答処理 (表示のみ)"""
+        if 0 < len(recv_bytes):
+            print(f"received -> {recv_bytes.decode('utf-8')}")
 
     def close(self) -> None:
         try:
@@ -39,18 +85,18 @@ class BaseClient:
             print(ex)
 
 
-if __name__ == "__main__":
+# https://stackoverflow.com/questions/58454190/python-async-waiting-for-stdin-input-while-doing-other-stuff
+async def input_async(string: str) -> str:
+    """非同期向けのinput()"""
+    await asyncio.to_thread(sys.stdout.write, f"{string}")
+    return (await asyncio.to_thread(sys.stdin.readline)).rstrip("\n")
+
+
+async def main() -> None:
     client = BaseClient(socket.AF_INET, socket.SOCK_STREAM)
-    # 接続
-    while True:
-        if client.connect("127.0.0.1", 8080):
-            break  # 接続成功したら抜ける
-        time.sleep(5)
-    # メッセージ送信
-    while True:
-        message = input("> ")
-        if not message:
-            break
-        client.send(message)
-    client.close()
-    print("disconnect from server.")
+    await client.connect_async("127.0.0.1", 8080)
+    print("client shutdown!")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -29,7 +29,7 @@ class AsyncServer:
         # asyncio event loop
         while self.is_running:
             client, cli_addr = await loop.sock_accept(self.skt)
-            client.setblocking(False)
+            client.setblocking(False)  # none blocking
             print(f"Server accepted client: {cli_addr}")
             asyncio.create_task(self.handle_recv(client, loop))
             asyncio.create_task(self.handle_send(client, loop))
