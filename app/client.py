@@ -8,6 +8,7 @@ class AsyncClient:
     buffer_size: int
     is_running: bool = True
     is_sending: bool = True
+    send_list: list[str] = []
 
     def __init__(self, family: int, typ: int, proto: int = 0, timeout: int = 10, buffer_size: int = 1024) -> None:
         self.skt = socket.socket(family, typ, proto)
@@ -43,21 +44,15 @@ class AsyncClient:
             elif line in ["q", "quit"]:
                 self.is_running = False
                 loop.stop()
-            elif line in ["s", "send"]:
-                self.is_sending ^= True
-                if self.is_sending:
-                    print("send flag On")
-                else:
-                    print("send flag off")
             else:
-                print("unknown command!")
+                self.send_list.append(line)
 
     async def handle_send(self, skt: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
         while self.is_running:
-            await asyncio.sleep(5)
-            if self.is_sending:
+            await asyncio.sleep(0.2)
+            if self.is_sending and self.send_list:
                 try:
-                    message = "send from client!"
+                    message = self.send_list.pop()
                     await loop.sock_sendall(skt, message.encode("utf-8"))
                     print(f"TX: {message}")
                 except ConnectionResetError:
