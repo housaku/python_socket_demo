@@ -103,6 +103,7 @@ async def main() -> None:
     server = AsyncServer(socket.AF_INET, socket.SOCK_STREAM)
     server.listen("0.0.0.0", 8080)
     await server.run_async()
+    print("server shutdown!")
 
 
 if __name__ == "__main__":
