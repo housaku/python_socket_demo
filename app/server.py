@@ -58,6 +58,7 @@ class AsyncServer:
                 recv_bytes = await loop.sock_recv(client, self.buffer_size)
                 resp_bytes = self.respond(recv_bytes)
                 await loop.sock_sendall(client, resp_bytes)
+                print(f"TX: {resp_bytes.decode('utf-8')}")
             except ConnectionAbortedError:
                 print("disconnected from client!")
                 break
@@ -70,7 +71,9 @@ class AsyncServer:
             await asyncio.sleep(5)
             if self.is_sending:
                 try:
-                    await loop.sock_sendall(client, "send from server!".encode("utf-8"))
+                    message = "send from server!"
+                    await loop.sock_sendall(client, message.encode("utf-8"))
+                    print(f"TX: {message}")
                 except ConnectionResetError:
                     # 接続が切れているので送信を終了する
                     print("disconnected from client!")
@@ -81,7 +84,7 @@ class AsyncServer:
 
     def respond(self, recv_bytes: bytes) -> bytes:
         """応答処理"""
-        print(f"received -> {recv_bytes.decode('utf-8')}")
+        print(f"RX: {recv_bytes.decode('utf-8')}")
         return "Server accepted.".encode("utf-8")
 
     def close(self) -> None:
