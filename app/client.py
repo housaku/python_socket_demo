@@ -42,8 +42,7 @@ class AsyncClient:
             if not line:
                 continue
             elif line in ["q", "quit"]:
-                self.is_running = False
-                loop.stop()
+                self.close(loop)
             else:
                 self.send_list.append(line)
 
@@ -67,25 +66,33 @@ class AsyncClient:
         while self.is_running:
             try:
                 recv_bytes = await loop.sock_recv(skt, self.buffer_size)
-                self.respond(recv_bytes)
             except ConnectionAbortedError:
-                print("disconnected from server!")
+                print("disconnected from server!!")
                 break
             except Exception as ex:
                 print(f"catch Exception: {ex}")
                 break
+            # サーバ側が落ちるとなぜか空電文が届くので終了する
+            if 0 < len(recv_bytes):
+                self.respond(recv_bytes)
+            else:
+                print("disconnected from server!!!")
+                self.close(loop)
+                return
 
     def respond(self, recv_bytes: bytes) -> None:
         """応答処理 (表示のみ)"""
-        if 0 < len(recv_bytes):
-            print(f"RX: {recv_bytes.decode('utf-8')}")
+        print(f"RX: {recv_bytes.decode('utf-8')}")
 
-    def close(self) -> None:
+    def close(self, loop: asyncio.AbstractEventLoop) -> None:
         try:
-            self.skt.shutdown(socket.SHUT_RDWR)
-            self.skt.close()
+            # if self.skt:
+            #     self.skt.shutdown(socket.SHUT_RDWR)
+            #     self.skt.close()
+            self.is_running = False
+            loop.stop()
         except Exception as ex:
-            print(ex)
+            print(f"catch Exception: {ex}")
 
 
 # https://stackoverflow.com/questions/58454190/python-async-waiting-for-stdin-input-while-doing-other-stuff
