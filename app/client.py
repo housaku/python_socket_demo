@@ -28,10 +28,10 @@ class AsyncClient:
                 continue
         print("connecting success!")
         # 送信/受信 処理
-        asyncio.create_task(self.handle_recv(reader))
-        asyncio.create_task(self.handle_send(writer))
-        while self.is_running:
-            await asyncio.sleep(5)
+        await asyncio.gather(
+            asyncio.create_task(self.handle_recv(reader)),
+            asyncio.create_task(self.handle_send(writer)),
+        )
 
     async def handle_control(self) -> None:
         """ユーザからの入力を受けるタスク"""
