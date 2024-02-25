@@ -7,7 +7,6 @@ class AsyncClient:
     skt: socket.socket
     buffer_size: int
     is_running: bool = True
-    is_sending: bool = True
     send_list: list[str] = []
 
     def __init__(self, family: int, typ: int, proto: int = 0, timeout: int = 10, buffer_size: int = 1024) -> None:
@@ -53,7 +52,7 @@ class AsyncClient:
         """送信処理を行うタスク"""
         while self.is_running:
             await asyncio.sleep(0.2)
-            if self.is_sending and self.send_list:
+            if self.send_list:
                 try:
                     message = self.send_list.pop()
                     writer.write(message.encode("utf-8"))
