@@ -17,42 +17,41 @@ class AsyncClient:
         self.buffer_size = buffer_size
 
     async def connect_async(self, host: str, port: int) -> None:
-        loop = asyncio.get_event_loop()
         # 制御 処理
-        asyncio.create_task(self.handle_control(loop))
+        asyncio.create_task(self.handle_control())
         # 接続
         print(f"connecting to {(host, port)}...")
         while self.is_running:
             try:
-                await asyncio.wait_for(loop.sock_connect(self.skt, (host, port)), timeout=1.0)
+                reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=1.0)
                 break
             except asyncio.TimeoutError:
                 continue
         print("connecting success!")
         # 送信/受信 処理
-        asyncio.create_task(self.handle_recv(self.skt, loop))
-        asyncio.create_task(self.handle_send(self.skt, loop))
+        asyncio.create_task(self.handle_recv(reader))
+        asyncio.create_task(self.handle_send(writer))
         while self.is_running:
             await asyncio.sleep(5)
-        loop.close()
 
-    async def handle_control(self, loop: asyncio.AbstractEventLoop) -> None:
+    async def handle_control(self) -> None:
         while self.is_running:
             line = await input_async("")
             if not line:
                 continue
             elif line in ["q", "quit"]:
-                self.close(loop)
+                self.close()
             else:
                 self.send_list.append(line)
 
-    async def handle_send(self, skt: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+    async def handle_send(self, writer: asyncio.StreamWriter) -> None:
         while self.is_running:
             await asyncio.sleep(0.2)
             if self.is_sending and self.send_list:
                 try:
                     message = self.send_list.pop()
-                    await loop.sock_sendall(skt, message.encode("utf-8"))
+                    writer.write(message.encode("utf-8"))
+                    await writer.drain()
                     print(f"TX: {message}")
                 except ConnectionResetError:
                     # 接続が切れているので送信を終了する
@@ -61,11 +60,13 @@ class AsyncClient:
                 except Exception as ex:
                     print(f"catch Exception: {ex}")
                     break
+        writer.close()
+        await writer.wait_closed()
 
-    async def handle_recv(self, skt: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+    async def handle_recv(self, reader: asyncio.StreamReader) -> None:
         while self.is_running:
             try:
-                recv_bytes = await loop.sock_recv(skt, self.buffer_size)
+                recv_bytes = await reader.read(self.buffer_size)
             except ConnectionAbortedError:
                 print("disconnected from server!!")
                 break
@@ -77,20 +78,19 @@ class AsyncClient:
                 self.respond(recv_bytes)
             else:
                 print("disconnected from server!!!")
-                self.close(loop)
+                self.close()
                 return
 
     def respond(self, recv_bytes: bytes) -> None:
         """応答処理 (表示のみ)"""
         print(f"RX: {recv_bytes.decode('utf-8')}")
 
-    def close(self, loop: asyncio.AbstractEventLoop) -> None:
+    def close(self) -> None:
         try:
             # if self.skt:
             #     self.skt.shutdown(socket.SHUT_RDWR)
             #     self.skt.close()
             self.is_running = False
-            loop.stop()
         except Exception as ex:
             print(f"catch Exception: {ex}")
 
