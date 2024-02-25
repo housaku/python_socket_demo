@@ -25,7 +25,7 @@ class AsyncServer:
 
     async def run_async(self) -> None:
         loop = asyncio.get_event_loop()
-        asyncio.create_task(self.handle_control(loop))
+        asyncio.create_task(self.handle_control())
         # asyncio event loop
         while self.is_running:
             client, cli_addr = await loop.sock_accept(self.skt)
@@ -35,9 +35,9 @@ class AsyncServer:
             asyncio.create_task(self.handle_send(client, loop))
         loop.close()
 
-    async def handle_control(self, loop: asyncio.AbstractEventLoop) -> None:
+    async def handle_control(self) -> None:
         """ユーザからの入力を受けるタスク"""
-        while True:
+        while self.is_running:
             line = await input_async("")
             if not line:
                 continue
@@ -46,8 +46,9 @@ class AsyncServer:
                 print('"q" or "quit": quit server.')
                 print('"s" or "send": toggle send flag.')
             elif line in ["q", "quit"]:
-                self.is_running = False
-                loop.stop()
+                # self.is_running = False
+                # loop.stop()
+                self.close()
             elif line in ["s", "send"]:
                 self.is_sending ^= True
                 if self.is_sending:
@@ -59,7 +60,7 @@ class AsyncServer:
 
     async def handle_send(self, client: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
         """送信処理を行うタスク"""
-        while True:
+        while self.is_running:
             await asyncio.sleep(5)
             if self.is_sending:
                 try:
@@ -76,7 +77,7 @@ class AsyncServer:
 
     async def handle_recv(self, client: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
         """受信処理を行うタスク"""
-        while True:
+        while self.is_running:
             try:
                 recv_bytes = await loop.sock_recv(client, self.buffer_size)
                 resp_bytes = self.respond(recv_bytes)
@@ -95,11 +96,14 @@ class AsyncServer:
         return "Server accepted.".encode("utf-8")
 
     def close(self) -> None:
-        try:
-            self.skt.shutdown(socket.SHUT_RDWR)
-            self.skt.close()
-        except Exception as ex:
-            print(ex)
+        self.is_running = False
+        loop = asyncio.get_event_loop()
+        loop.stop()
+        # try:
+        #     self.skt.shutdown(socket.SHUT_RDWR)
+        #     self.skt.close()
+        # except Exception as ex:
+        #     print(ex)
 
 
 # https://stackoverflow.com/questions/58454190/python-async-waiting-for-stdin-input-while-doing-other-stuff
