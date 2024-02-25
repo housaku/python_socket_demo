@@ -35,16 +35,22 @@ class AsyncClient:
             await asyncio.sleep(5)
 
     async def handle_control(self) -> None:
+        """ユーザからの入力を受けるタスク"""
         while self.is_running:
             line = await input_async("")
             if not line:
                 continue
             elif line in ["q", "quit"]:
                 self.close()
+            elif line in ["h", "help"]:
+                print('"q" or "quit": quit client.')
+                print('"h" or "help": print this help massage.')
+                print("other        : send input text to server.")
             else:
                 self.send_list.append(line)
 
     async def handle_send(self, writer: asyncio.StreamWriter) -> None:
+        """送信処理を行うタスク"""
         while self.is_running:
             await asyncio.sleep(0.2)
             if self.is_sending and self.send_list:
@@ -64,6 +70,7 @@ class AsyncClient:
         await writer.wait_closed()
 
     async def handle_recv(self, reader: asyncio.StreamReader) -> None:
+        """受信処理を行うタスク"""
         while self.is_running:
             try:
                 recv_bytes = await reader.read(self.buffer_size)
