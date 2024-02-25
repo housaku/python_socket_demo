@@ -36,10 +36,15 @@ class AsyncServer:
         loop.close()
 
     async def handle_control(self, loop: asyncio.AbstractEventLoop) -> None:
+        """ユーザからの入力を受けるタスク"""
         while True:
             line = await input_async("")
             if not line:
                 continue
+            elif line in ["h", "help"]:
+                print('"h" or "help": print this help massage.')
+                print('"q" or "quit": quit server.')
+                print('"s" or "send": toggle send flag.')
             elif line in ["q", "quit"]:
                 self.is_running = False
                 loop.stop()
@@ -52,21 +57,8 @@ class AsyncServer:
             else:
                 print("unknown command!")
 
-    async def handle_recv(self, client: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
-        while True:
-            try:
-                recv_bytes = await loop.sock_recv(client, self.buffer_size)
-                resp_bytes = self.respond(recv_bytes)
-                await loop.sock_sendall(client, resp_bytes)
-                print(f"TX: {resp_bytes.decode('utf-8')}")
-            except ConnectionAbortedError:
-                print("disconnected from client!")
-                break
-            except Exception as ex:
-                print(f"catch Exception: {ex}")
-                break
-
     async def handle_send(self, client: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+        """送信処理を行うタスク"""
         while True:
             await asyncio.sleep(5)
             if self.is_sending:
@@ -81,6 +73,21 @@ class AsyncServer:
                 except Exception as ex:
                     print(f"catch Exception: {ex}")
                     break
+
+    async def handle_recv(self, client: socket.socket, loop: asyncio.AbstractEventLoop) -> None:
+        """受信処理を行うタスク"""
+        while True:
+            try:
+                recv_bytes = await loop.sock_recv(client, self.buffer_size)
+                resp_bytes = self.respond(recv_bytes)
+                await loop.sock_sendall(client, resp_bytes)
+                print(f"TX: {resp_bytes.decode('utf-8')}")
+            except ConnectionAbortedError:
+                print("disconnected from client!")
+                break
+            except Exception as ex:
+                print(f"catch Exception: {ex}")
+                break
 
     def respond(self, recv_bytes: bytes) -> bytes:
         """応答処理"""
