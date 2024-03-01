@@ -15,9 +15,6 @@ class AsyncServer:
         self.skt.setblocking(False)  # none blocking
         self.buffer_size = buffer_size
 
-    # def __del__(self) -> None:
-    #     self.close()
-
     def listen(self, address: str, port: int) -> None:
         self.skt.bind((address, port))
         self.skt.listen(1)
@@ -46,8 +43,6 @@ class AsyncServer:
                 print('"q" or "quit": quit server.')
                 print('"s" or "send": toggle send flag.')
             elif line in ["q", "quit"]:
-                # self.is_running = False
-                # loop.stop()
                 self.close()
             elif line in ["s", "send"]:
                 self.is_sending ^= True
@@ -99,11 +94,6 @@ class AsyncServer:
         self.is_running = False
         loop = asyncio.get_event_loop()
         loop.stop()
-        # try:
-        #     self.skt.shutdown(socket.SHUT_RDWR)
-        #     self.skt.close()
-        # except Exception as ex:
-        #     print(ex)
 
 
 # https://stackoverflow.com/questions/58454190/python-async-waiting-for-stdin-input-while-doing-other-stuff
