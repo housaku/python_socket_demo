@@ -54,7 +54,7 @@ class AsyncClient:
             await asyncio.sleep(0.2)
             if self.send_list:
                 try:
-                    message = self.send_list.pop()
+                    message = self.send_list.pop(0)
                     writer.write(message.encode("utf-8"))
                     await writer.drain()
                     print(f"TX: {message}")
