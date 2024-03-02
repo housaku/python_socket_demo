@@ -9,7 +9,7 @@ class AsyncServer:
     buffer_size: int
     is_running: bool = True
     send_list: list[str] = []
-    # server: asyncio.Server
+    server: asyncio.Server
 
     def __init__(self, buffer_size: int = 1024):
         self.buffer_size = buffer_size
